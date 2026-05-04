@@ -1,0 +1,10 @@
+{
+    "chats_poll_interval": 60,
+    "broadcast_poll_interval": 120,
+    "messages_poll_interval": 0,
+    "messages_poll_interval_fallback": 15,
+    "messaging_mode": "websocket",
+    "fallback_mode": 1,
+    "disable_groups": 0,
+    "ws_url": "wss:\/\/lexchat-websocket.onrender.com"
+}

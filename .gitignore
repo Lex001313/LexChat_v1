@@ -1,0 +1,37 @@
+# Файлы с паролями и конфигурацией (если не вынесли в переменные)
+connect.php
+.env
+config.php
+
+# Папки с загруженными файлами
+uploads/
+photo/
+files/
+records/
+avatars/
+group_avatars/
+
+# Файлы логов и временные файлы
+*.log
+*.tmp
+*.swp
+
+# Файлы IDE
+.vscode/
+.idea/
+
+# OS meta
+.DS_Store
+Thumbs.db
+
+# Node.js (для папки server)
+server/node_modules/
+server/.env
+server/*.log
+
+# JSON настройки, если они содержат пароли (но можно оставить для примера)
+# admin_settings.json
+# colors.json
+
+# PHPMailer – обычно не исключаем, если он используется как библиотека
+# но если вы скопировали его вручную, то исключать не нужно

@@ -1,0 +1,17 @@
+{
+    "dark_bg": "#0a0f12",
+    "dark_sidebar_bg": "#111b21",
+    "dark_header_bg": "#202c33",
+    "dark_text": "#e9edef",
+    "dark_message_in_bg": "#202c33",
+    "dark_message_out_bg": "#005c4b",
+    "dark_input_bg": "#2a3942",
+    "light_bg": "#ffffff",
+    "light_sidebar_bg": "#ffffff",
+    "light_header_bg": "#e9edef",
+    "light_text": "#111b21",
+    "light_message_in_bg": "#ffffff",
+    "light_message_out_bg": "#d9fdd3",
+    "light_input_bg": "#ffffff",
+    "chat_background": "uploads\/chat_bg_1777820119.JPG"
+}
