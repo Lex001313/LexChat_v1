@@ -20,8 +20,7 @@
 - Адаптивный дизайн (мобильные устройства)
 
 ## Архитектура
-
-![Схема](https://your-image-link) – *добавьте схему позже*
+<img width="994" height="653" alt="image" src="https://github.com/user-attachments/assets/6d27d9d0-853f-44dc-aa05-b7a690b1ff6f" />
 
 - **Клиент**: HTML/CSS/JS (index.php) + Socket.IO client
 - **Бэкенд**: PHP (api.php) на InfinityFree, MySQL
