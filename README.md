@@ -38,7 +38,8 @@
 
 ## Развёртывание на бесплатных хостингах
 
-Подробная инструкция в [DEPLOY.md](DEPLOY.md) (скоро). Основные шаги:
+Подробная инструкция в [DEPLOY.md](https://github.com/Lex001313/LexChat_v1/blob/main/DEPLOY.md). 
+Основные шаги:
 - Загрузить PHP-файлы на InfinityFree
 - Задеплоить папку `server` на Render (Web Service)
 - Настроить UptimeRobot для пинга
