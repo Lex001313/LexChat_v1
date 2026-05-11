@@ -14,6 +14,7 @@
 - Личные и групповые чаты
 - Отправка файлов (изображения, документы)
 - Голосовые сообщения (запись через браузер)
+- Аудио и Видео звонки
 - Аватары пользователей и групп
 - Админ-панель: рассылки, настройка цветов и фона, управление пользователями
 - Автоматическое переключение на polling при отключении WebSocket
@@ -21,6 +22,11 @@
 
 ## Архитектура
 <img width="994" height="653" alt="image" src="https://github.com/user-attachments/assets/6d27d9d0-853f-44dc-aa05-b7a690b1ff6f" />
+
+
+
+<img width="1263" height="751" alt="image" src="https://github.com/user-attachments/assets/fde9f5b8-a85f-4d0f-bde8-ec5898009979" />
+
 
 - **Клиент**: HTML/CSS/JS (index.php) + Socket.IO client
 - **Бэкенд**: PHP (api.php) на InfinityFree, MySQL
