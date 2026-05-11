@@ -26,8 +26,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 header('Content-Type: text/html; charset=utf-8');
 
-// ========== НАСТРОЙКИ БД (ЗАМЕНИТЕ НА СВОИ) ==========
-// Для демонстрации используем переменные окружения или плейсхолдеры
+// ========== НАСТРОЙКИ БД ==========
 // LexChat.rf.gd
 $host = 'localhost';
 $dbname = 'lexchat_db';
