@@ -6,7 +6,6 @@
 // Copyright (c) 2026               /
 /////////////////////////////////////
 
-
 // Продлеваем сессию при каждом запросе
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -1185,14 +1184,14 @@ if ($action == 'send_verification') {
             $mail->isSMTP();
             $mail->Host       = 'smtp.gmail.com';
             $mail->SMTPAuth   = true;
-            $mail->Username   = 'LexChat.rf@gmail.com';
-            $mail->Password   = 'wyfifabighnevjxo';
+			$mail->Username = 'your_email@gmail.com';
+			$mail->Password   = 'your_app_password';  // Замените на свои данные при установке
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port       = 587;
             $mail->CharSet    = 'UTF-8';
             
-$mail->Username = 'your_email@gmail.com';// ←Замените на свои данные при установке
-$mail->Password   = 'your_app_password';  // ←Замените на свои данные при установке
+            $mail->setFrom($mail->Username, 'LexChat');
+            $mail->addAddress($email);
             
             $mail->isHTML(true);
             $mail->Subject = '=?UTF-8?B?'.base64_encode('Код подтверждения LexChat').'?=';
