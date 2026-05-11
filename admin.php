@@ -6,6 +6,7 @@
 // Copyright (c) 2026               /
 /////////////////////////////////////
 
+
 header('Content-Type: text/html; charset=utf-8');
 session_start();
 
@@ -75,6 +76,91 @@ if ($is_authenticated && isset($_GET['action']) && $_GET['action'] === 'check_ws
     }
     exit;
 }
+
+
+//////////////////////////////
+
+// ========== ЗВОНКИ: ЗАГРУЗКА НАСТРОЕК ==========
+$calls_settings_file = 'calls_settings.json';
+$calls_settings = array(
+    'video_calls_enabled' => true,   // ✅ Включены видеозвонки по умолчанию
+    'audio_calls_enabled' => true,   // ✅ Включены аудиозвонки по умолчанию
+    'ice_servers' => array(
+        array(
+            'urls' => 'stun:global.stun.twilio.com:3478'
+        ),
+        array(
+            'urls' => 'turn:global.turn.twilio.com:3478?transport=udp',
+            'username' => 'test',
+            'credential' => 'test'
+        )
+    )
+);
+if (file_exists($calls_settings_file)) {
+    $content = file_get_contents($calls_settings_file);
+    $saved = json_decode($content, true);
+    if (is_array($saved)) {
+        foreach ($calls_settings as $key => $value) {
+            if (isset($saved[$key])) {
+                if ($key === 'video_calls_enabled' || $key === 'audio_calls_enabled') {
+                    // Преобразуем в булево (числа 0/1 тоже подходят)
+                    $calls_settings[$key] = (bool)$saved[$key];
+                } else {
+                    $calls_settings[$key] = $saved[$key];
+                }
+            }
+        }
+    }
+}
+
+// ========== ЗВОНКИ: СОХРАНЕНИЕ ==========
+$calls_settings_saved = false;
+if ($is_authenticated && isset($_POST['save_calls_settings'])) {
+    // Сохраняем как булевы, а не 0/1
+    $calls_settings['video_calls_enabled'] = isset($_POST['video_calls_enabled']) ? true : false;
+    $calls_settings['audio_calls_enabled'] = isset($_POST['audio_calls_enabled']) ? true : false;
+    
+    if (isset($_POST['ice_servers_json']) && !empty($_POST['ice_servers_json'])) {
+        $decoded = json_decode($_POST['ice_servers_json'], true);
+        if (is_array($decoded)) {
+            $calls_settings['ice_servers'] = $decoded;
+        } else {
+            // Если JSON некорректен, оставляем старый массив или задаём пустой
+            if (!isset($calls_settings['ice_servers']) || !is_array($calls_settings['ice_servers'])) {
+                $calls_settings['ice_servers'] = [];
+            }
+        }
+    } else {
+        // Если поле пустое – задаём пустой массив
+        $calls_settings['ice_servers'] = [];
+    }
+    
+    file_put_contents($calls_settings_file, json_encode($calls_settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    $calls_settings_saved = true;
+    
+    // Отправляем WS уведомление всем клиентам
+    sendWsNotification('/api/calls_settings', $calls_settings);
+}
+
+// ========== API ДЛЯ ПРОВЕРКИ СТАТУСА TURN/STUN ==========
+if ($is_authenticated && isset($_GET['action']) && $_GET['action'] === 'check_turn_status') {
+    header('Content-Type: application/json');
+    $test_url = 'https://global.relay.metered.ca/v1/health'; // пример эндпоинта (можно заменить)
+    $ch = curl_init($test_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($httpCode == 200 && $response) {
+        echo json_encode(['success' => true, 'message' => 'STUN/TURN доступен']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Сервер недоступен или таймаут']);
+    }
+    exit;
+}
+/////////
+
 
 
 
@@ -731,6 +817,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_group_admin') {
     exit;
 }
 
+// ========== API ДЛЯ ПОЛУЧЕНИЯ НАСТРОЕК ЗВОНКОВ ==========
+if (isset($_GET['action']) && $_GET['action'] === 'get_call_settings') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-cache');
+    // $calls_settings уже загружена ранее в коде (из calls_settings.json)
+    echo json_encode($calls_settings, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+
+
 if (isset($_GET['action']) && $_GET['action'] === 'remove_member_admin') {
     header('Content-Type: application/json; charset=utf-8');
     if (!$is_authenticated) { echo json_encode(['error' => 'Unauthorized']); exit; }
@@ -1149,6 +1246,7 @@ body.light-theme #conversationList .message-audio {
             <button class="tab <?php echo $active_tab == 'groups' ? 'active' : ''; ?>" onclick="showTab('groups')">👥 Группы</button>
             <button class="tab <?php echo $active_tab == 'test_users' ? 'active' : ''; ?>" onclick="showTab('test_users')">🧪 Тестовые</button>
             <button class="tab <?php echo $active_tab == 'load' ? 'active' : ''; ?>" onclick="showTab('load')">⚡ Нагрузка</button>
+			<button class="tab <?php echo $active_tab == 'calls' ? 'active' : ''; ?>" onclick="showTab('calls')">📞 Звонки</button>
             <button class="tab <?php echo $active_tab == 'database' ? 'active' : ''; ?>" onclick="showTab('database')">🗄️ База данных</button>
         </div>
         
@@ -1419,7 +1517,52 @@ body.light-theme #conversationList .message-audio {
     </div>
 </div>
 	   
-        <!-- Вкладка 7: База данных -->
+	   
+<!-- Вкладка  7: Звонки -->
+<div id="tab-calls" class="tab-content <?php echo $active_tab == 'calls' ? 'active' : ''; ?>">
+    <div class="card">
+        <h2>📞 Настройки аудио/видеозвонков</h2>
+        <?php if ($calls_settings_saved): ?>
+            <div class="success">✅ Настройки звонков сохранены!</div>
+        <?php endif; ?>
+        <form method="POST">
+            <div class="checkbox-label">
+                <input type="checkbox" name="video_calls_enabled" value="1" <?php echo $calls_settings['video_calls_enabled'] ? 'checked' : ''; ?>>
+                <span>🎥 Включить видеозвонки</span>
+            </div>
+            <div class="checkbox-label">
+                <input type="checkbox" name="audio_calls_enabled" value="1" <?php echo $calls_settings['audio_calls_enabled'] ? 'checked' : ''; ?>>
+                <span>📞 Включить аудиозвонки</span>
+            </div>
+            <div class="info" style="margin-top: 15px;">
+                <strong>⚙️ STUN / TURN серверы (формат JSON):</strong><br>
+                <textarea name="ice_servers_json" rows="30" style="width:100%; background:#2a3942; border:none; border-radius:8px; color:#e9edef; font-family:monospace;"><?php echo htmlspecialchars(json_encode($calls_settings['ice_servers'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></textarea>
+               
+
+				
+				<div class="comment" style="margin-top: 5px;">📌 Пример: <code>[{"urls":"stun:stun.l.google.com:19302"},{"urls":["turn:..."]}]</code></div>
+            			   <div class="button-group" style="margin-top: 10px;">
+    <button type="button" class="reset" onclick="fetchMeteredIce()">🔄 Получить ICE от Metered</button>
+</div>
+			
+			</div>
+            <div class="button-group">
+                <button type="submit" name="save_calls_settings">💾 Сохранить настройки звонков</button>
+                <button type="button" class="reset" onclick="checkTurnStatus()">🔍 Проверить доступность STUN/TURN</button>
+            </div>
+        </form>
+        <div id="turnStatusMsg" style="margin-top: 15px;"></div>
+        <hr>
+        <div class="info">
+            <strong>📊 Бесплатный тариф Metered.ca (50 ГБ трафика в месяц)</strong><br>
+            <span style="font-size:12px;">После исчерпания лимита звонки могут перестать работать. Рекомендуется перейти на свой TURN‑сервер или платный тариф.</span>
+        </div>
+    </div>
+</div>	   
+	   
+	   
+	   
+        <!-- Вкладка 8: База данных -->
         <div id="tab-database" class="tab-content <?php echo $active_tab == 'database' ? 'active' : ''; ?>">
             <div class="card">
                 <h2>🗄️ Управление базой данных</h2>
@@ -2014,6 +2157,46 @@ function showGroupConversation(groupId, groupName) {
             document.getElementById('conversationList').innerHTML = html;
         })
         .catch(function(e) { document.getElementById('conversationList').innerHTML = '<div class="empty-message">Ошибка: ' + e.message + '</div>'; });
+}
+
+
+
+function checkTurnStatus() {
+    var msgDiv = document.getElementById('turnStatusMsg');
+    msgDiv.innerHTML = '⏳ Проверка...';
+    fetch('admin.php?action=check_turn_status')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                msgDiv.innerHTML = '<span style="color:#00a884;">✅ ' + data.message + '</span>';
+            } else {
+                msgDiv.innerHTML = '<span style="color:#c33;">❌ ' + data.message + '</span>';
+            }
+        })
+        .catch(() => msgDiv.innerHTML = '<span style="color:#c33;">❌ Ошибка проверки</span>');
+}
+
+
+function fetchMeteredIce() {
+    const apiKey = '83c80f6d7493893dd2d62dd9124acaae44c9'; // Ваш ключ Metered
+    const url = `https://lexchat.metered.live/api/v1/turn/credentials?apiKey=${apiKey}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+                // Форматируем в pretty JSON для отображения в textarea
+                const formatted = JSON.stringify(data, null, 2);
+                document.querySelector('textarea[name="ice_servers_json"]').value = formatted;
+                alert('✅ ICE-серверы от Metered загружены. Не забудьте сохранить настройки!');
+            } else {
+                alert('❌ Не удалось получить корректные ICE-серверы');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('❌ Ошибка загрузки: ' + err.message);
+        });
 }
 
 function closeContactsModal() { document.getElementById('contactsModal').classList.remove('open'); }
